@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-TOKEN = 'c7465075b375a18026d0a4092b380a376f271ed121af807548ee0690a456f2d819a49a7e003c601723481'
-GROUP_ID = '188414199'
+TOKEN = 'TOKEN'
+GROUP_ID = 'GROUP_ID'
 
 START_ANSWER = 'Привет, чем я могу вам помочь?'
 
@@ -21,7 +21,8 @@ CONTACT_INFORMATION = 'Мы:    ООО "ПЛЮШКИ"   \n' \
                       'Телефон:+7(000)000-00-00\n'
 
 START_EVENT = ['Каталог', 'Статус Заказа', 'Корзина', 'exit']
-EXIT_EVENT_ANSWER = ['exit', 'end', 'by', 'Пока']
+EXIT_EVENT = ['exit', 'end', 'by', 'Пока']
+CATALOG_EVENT = ['Назад', 'Купить', 'Далее', 'Меню', 'Корзина']
 REQUESTS = [
     {
         "name": "Каталог",
