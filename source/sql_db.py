@@ -213,5 +213,3 @@ def select(sql='', line='*', table='*', where=''):
     except sqlite3.OperationalError as err:
         print("ERROR_Select -", err)
 
-
-conn.close()

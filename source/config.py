@@ -27,14 +27,14 @@ REQUESTS = [
     {
         "name": "Каталог",
         "tokens": ("Купить", "купить", "Каталог", "каталог", "Заказ", "заказ"),
-        "scenario": None,
+        "scenario": "catalog",
         "answer": None
     },
     {
         "name": "Корзина",
         "tokens": ("корзина", "Корзина"),
         "scenario": "shopping_basket",
-        "answer": "Вы ничего не выбрали :с"
+        "answer": None
     },
     {
         "name": "Статус заказа",
@@ -57,7 +57,6 @@ REQUESTS = [
         "answer": START_ANSWER
     }
 ]
-
 SCENARIOS = {
     "shopping_basket": {
         "first_step": "step1",
@@ -76,14 +75,15 @@ SCENARIOS = {
             },
         }
     },
+
     "catalog": {
-        "first_step": "step1",
+        "first_step": "catalog_menu",
         "steps": {
-            "step1": {
-                "text": "",
-                "err_val": "",
-                "handler": "",
-                "next_step": "step2"
+            "catalog_menu": {
+                "text": "Выберите категорию",
+                "err_val": "Я ничего не нашел, возможно добавим немного позже..",
+                "table": "category_table",
+                "line": 1
             },
             "step2": {
                 "text": "",
@@ -93,6 +93,7 @@ SCENARIOS = {
             },
         }
     },
+
     "order_status": {
         "first_step": "step1",
         "steps": {
@@ -111,3 +112,30 @@ SCENARIOS = {
         }
     }
 }
+
+#
+# RW = {"catalog": {
+#     "first_step": "catalog_menu", "steps": {
+#         "catalog_menu": {
+#             "text": "Выберите категорию",
+#             "err_val": "Я ничего не нашел, возможно добавим немного позже..",
+#             "keyboard": "catalog"
+#         },
+#         "step2": {
+#             "text": "",
+#             "err_val": "",
+#             "handler": "",
+#             "next_step": ""
+#             },
+#         }
+#     },
+# }
+#
+#
+# scnr = RW['catalog']
+# first_step = scnr['first_step']
+# step = scnr['steps'][first_step]
+#
+# keyboard = step['keyboard']
+# text_to_send = step['text']
+# print(text_to_send, keyboard)
