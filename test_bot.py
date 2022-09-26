@@ -10,8 +10,7 @@ from unittest.mock import patch, Mock, ANY
 
 def base_check():
     try:
-        os.path.isfile('source/sql_db.db')
-        os.path.isfile('source/base.db')
+        os.path.isfile('base.db')
     except Exception as err:
         print("ERROR SQL:", err)
 

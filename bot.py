@@ -6,15 +6,7 @@ from datetime import datetime
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from source.config import *
-from source.sql_db import * # select, conn
 from logs.change import log, config_logging
-
-
-class UserSession:
-    def __init__(self, scenario, step, context=None):
-        self.scenario = scenario
-        self.step = step
-        self.context = context or {}
 
 
 class VkBot:
@@ -28,14 +20,13 @@ class VkBot:
         self.group_id = group
         self.token = token
         self.user_session = dict()
+        self.shop_basket = dict()
         self.vk_session = vk_api.VkApi(token=self.token)
         self.vk = self.vk_session.get_api()
         self.longpoll = VkBotLongPoll(self.vk_session, self.group_id)
         log.info(f'Running VkBot by: {platform.system()} in date: {datetime.now()}')
 
     def buttons(self, item_list, line=5, loc=False, vk_pay=False):
-        # print('buttons')
-
         def generate(lst, n):
             for i in range(0, len(lst), n):
                 yield lst[i:i+n]
@@ -75,72 +66,114 @@ class VkBot:
             )
         log.info(f'Sends message is user')
 
-    def on_event(self, event):
+    def keyboard_panel(self, scenario):
+        response = {}
+        if scenario['table']:
+            response['keyboard'] = scenario['table']
+        else:
+            result = []
+            for point in select(table=scenario['sql_table'],
+                                line=scenario['sql_line']):
+                result.append(point[0])
+            response['keyboard'] = result
+        response['line'] = scenario['line']
+        return response
+
+    def scenario(self, user_id, request):
+        result = {}
+        if request['scenario']:
+            scenario = SCENARIOS[request['scenario']]
+            result['message'] = scenario['text']
+            result.update(self.keyboard_panel(scenario))
+            # self.user_session[user_id] = {}
+            self.user_session[user_id] = {
+                "step": 0,
+                "index": [],
+                "scenario": scenario,
+                "next_step": True
+            }
+        else:
+            result['message'] = request['answer']
+        return result
+
+    def shoping_function(self, user_id, request):
+        result = {}
+        session = self.user_session[user_id]
+        print(self.user_session[user_id]['next_step'])
+        if self.user_session[user_id]['next_step'] == 'GOTO_MENU':
+            self.user_session[user_id]['next_step'] = True
+            response = self.keyboard_panel(SCENARIOS['catalog_menu'])
+            result['message'] = SCENARIOS['catalog_menu']['text']
+            result['keyboard'] = response['keyboard']
+            result['line'] = response['line']
+            return result
+        if self.user_session[user_id]['next_step']:
+            items = select(sql=f"SELECT * FROM category_table,items_table "
+                               f"WHERE category_table.id = category_id "
+                               f"AND category_table.name = '{request}'")
+            context = [item for item in items]
+            session['step'] = 0
+            session["index"] = context
+        message = session['index'][session['step']]
+        result['message'] = f'{message[3]}\n\n {message[4]}\n\n Цена за порцию: {message[5]}р.'
+        self.user_session[user_id].update(session)
+        return result
+
+    def navigation(self, text, session, user_id):
+        step = 0
+        for request in QUEST_SHOP:
+            if any(token in text for token in request['tokens']):
+                if request['name'] == 'Меню':
+                    self.user_session[user_id]['next_step'] = 'GOTO_MENU'
+                    break
+                if request['name'] == text:
+                    self.user_session[user_id]['next_step'] = None
+                    scence = session['scenario']['navigation']
+                    move = request['scenario']
+                    step = scence[move]['step']
+                    break
+        index = self.user_session[user_id]['index']
+        if step < 0:
+            new_step = self.user_session[user_id]['step'] - step
+            self.user_session[user_id]['step'] = new_step
+        else:
+            self.user_session[user_id]['step'] = self.user_session[user_id]['step'] + step
+        if self.user_session[user_id]['step'] >= len(index):
+            self.user_session[user_id]['step'] = 0
+
+    def new_event(self, event):
         if event.type != VkBotEventType.MESSAGE_NEW:
             return
         user_id = event.object.message['peer_id']
         text = event.object.message['text']
-        log.info(f'NEW MESSAGE BY USER: {user_id}')
-        send_by_user = {
+        response_to_user = {
+            'user_id': user_id,
             'keyboard': None,
             'message': None,
-            'user_id': user_id
+            'line': 1
         }
+        log.info(f'new event by user: {user_id} say: {text}')
+        response_to_user['keyboard'] = START_EVENT
         if user_id in self.user_session:
-            print('user_id array')
-            # send_by_user = 'error'  # continue_session
-            send_by_user['message'] = 'error'
+            if len(self.user_session[user_id]['index']) > 0:
+                session = self.user_session[user_id]
+                self.navigation(text, session, user_id)
+            response_to_user['line'] = 3
+            response_to_user['keyboard'] = CATALOG_EVENT
+            response_to_user.update(self.shoping_function(user_id, text))
         else:
-            for req in REQUESTS:
-                if any(token in text for token in req['tokens']):
-                    if req['answer']:
-                        send_by_user['message'] = req['answer']
-                    else:
-                        send_by_user = self.start_session(user_id, req['scenario'])
+            for request in REQUESTS:
+                if any(token in text for token in request['tokens']):
+                    response_to_user.update(self.scenario(user_id, request))
                     break
             else:
-                send_by_user['message'] = DEBUG_ANSWER
-        self.send_messages(send_by_user)
-
-    # def continue_session(self, user_id, text):
-    #     session = self.user_session[user_id]
-    #     steps = SCENARIOS[session.scenario_name]['steps']
-    #     step = steps[session.step_name]
-    #     # handler = getattr(hand_func, step['handler'])
-    #     # if handler(text=text, context=state.context):
-    #     #     next_step = steps[step['next_step']]
-    #     #     text_to_send = next_step['text'].format(**state.context)
-    #     #     if next_step['next_step']:
-    #     #         state.step_name = step['next_step']
-    #     #     else:
-    #     #         self.user_states.pop(user_id)
-    #     #         log.info('Зарегистрирован: {name}: {email}.'.format(**state.context))
-    #     # else:
-    #     #     text_to_send = step['failure_text'].format(**state.context)
-    #     # return text_to_send
-
-    def start_session(self, user_id, scenario):
-        log.info(f'Used by {scenario} scenario, active.')
-        text_to_send = {}
-        scenario = SCENARIOS[scenario]
-        first_step = scenario['first_step']
-        step = scenario['steps'][first_step]
-        if step['table']:
-            key = select(table=str(step['table']))
-            mras = []
-            for item in key:
-                mras.append(item[1])
-            text_to_send['line'] = step['line']
-            text_to_send['keyboard'] = mras
-        text_to_send['user_id'] = user_id
-        text_to_send['message'] = step['text']
-        self.user_session[user_id] = UserSession(scenario=scenario, step=first_step)
-        return text_to_send
+                response_to_user['message'] = DEBUG_ANSWER
+        self.send_messages(response_to_user)
 
     def run(self):
         for event in self.longpoll.listen():
             try:
-                self.on_event(event)
+                self.new_event(event)
             except Exception as err:
                 print(f'Error value {err}')
 

@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 
-TOKEN = 'TOKEN'
-GROUP_ID = 'GROUP_ID'
+from source.sql_db import *     # select, conn
+
+TOKEN = 'c7465075b375a18026d0a4092b380a376f271ed121af807548ee0690a456f2d819a49a7e003c601723481'
+GROUP_ID = '188414199'
 
 START_ANSWER = 'Привет, чем я могу вам помочь?'
-
-DEBUG_ANSWER = 'Простите я не знаю как вам помочь с этим, я могу ' \
-               'предоставить вам наш католог товаров, если вам это интересно.' \
-               'Просто скажите мне "Привет".'
-
-END_ANSWER = 'Всего вам наилучшего!\n' \
-             'Если я вам еще потребуюсь пишите!\n' \
-             'Буду рад помочь!\n'
+DEBUG_ANSWER = 'Я не смог разобать что вы сказали, вот что я умею:'
 
 CONTACT_INFORMATION = 'Мы:    ООО "ПЛЮШКИ"   \n' \
                       'наш сайт:  example.com  \n' \
@@ -20,20 +15,20 @@ CONTACT_INFORMATION = 'Мы:    ООО "ПЛЮШКИ"   \n' \
                       '\n' \
                       'Телефон:+7(000)000-00-00\n'
 
-START_EVENT = ['Каталог', 'Статус Заказа', 'Корзина', 'exit']
-EXIT_EVENT = ['exit', 'end', 'by', 'Пока']
+START_EVENT = ['Каталог Товаров', 'Статус Заказа', 'Корзина', 'Контакты']
 CATALOG_EVENT = ['Назад', 'Купить', 'Далее', 'Меню', 'Корзина']
+
 REQUESTS = [
     {
         "name": "Каталог",
-        "tokens": ("Купить", "купить", "Каталог", "каталог", "Заказ", "заказ"),
-        "scenario": "catalog",
+        "tokens": ("Купить", "купить", "Каталог", "каталог"),
+        "scenario": "catalog_menu",
         "answer": None
     },
     {
         "name": "Корзина",
         "tokens": ("корзина", "Корзина"),
-        "scenario": "shopping_basket",
+        "scenario": "basket",
         "answer": None
     },
     {
@@ -53,89 +48,80 @@ REQUESTS = [
     {
         "name": "Привет",
         "tokens": ("привет", "Привет", "Здарова", "хай", "start", "hi", "hello", "Hi", "Hello"),
-        "scenario": None,
+        "scenario": "main_menu",
         "answer": START_ANSWER
     }
 ]
+QUEST_SHOP = [
+    # {
+    #     "name": "Купить",
+    #     "tokens": "Купить",
+    #     "scenario": "by",
+    #     "answer": None
+    # },
+    {
+        "name": "Назад",
+        "tokens": "Назад",
+        "scenario": "back",
+        "answer": None
+    },
+    {
+        "name": "Далее",
+        "tokens": "Далее",
+        "scenario": "farther",
+        "answer": None
+    },
+    {
+        "name": "Меню",
+        "tokens": "Меню",
+        "scenario": "catalog_menu",
+        "answer": None
+    },
+    # {
+    #     "name": "Корзина",
+    #     "tokens": "Корзина",
+    #     "scenario": "basket",
+    #     "answer": None
+    # }
+]
+
 SCENARIOS = {
-    "shopping_basket": {
-        "first_step": "step1",
-        "steps": {
-            "step1": {
-                "text": "",
-                "err_val": "",
-                "handler": "handle_name",
-                "next_step": "step2"
-            },
-            "step2": {
-                "text": "",
-                "err_val": "",
-                "handler": "handle_email",
-                "next_step": "step3"
-            },
-        }
+    "main_menu": {
+        "text": START_ANSWER,
+        "err_val": "Я ничего не нашел, возможно добавим немного позже..",
+        "name": "main_menu",
+        "sql_table": None,
+        "sql_line": None,
+        "table": START_EVENT,
+        "line": 1,
+        "step": 0
     },
-
-    "catalog": {
-        "first_step": "catalog_menu",
-        "steps": {
+    "basket": {},
+    "catalog_menu": {
+        "text": "Выберите категорию",
+        "err_val": "Я ничего не нашел, возможно добавим немного позже..",
+        "name": "catalog_menu",
+        "sql_table": "category_table",
+        "sql_line": "name",
+        "table": None,
+        "line": 1,
+        "step": 1,
+        "navigation": {
+            "name": "navigation",
+            "back": {
+                "name": 'back',
+                "step": -1
+            },
+            "farther": {
+                "name": 'farther',
+                "step": +1
+            },
             "catalog_menu": {
-                "text": "Выберите категорию",
-                "err_val": "Я ничего не нашел, возможно добавим немного позже..",
-                "table": "category_table",
-                "line": 1
+                "name": 'catalog',
+                "step": 0
             },
-            "step2": {
-                "text": "",
-                "err_val": "",
-                "handler": "",
-                "next_step": "step3"
-            },
-        }
+        },
     },
+    "status": {},
 
-    "order_status": {
-        "first_step": "step1",
-        "steps": {
-            "step1": {
-                "text": "",
-                "err_val": "",
-                "handler": "handle_name",
-                "next_step": "step2"
-            },
-            "step2": {
-                "text": "",
-                "err_val": "",
-                "handler": "",
-                "next_step": "step3"
-            },
-        }
-    }
 }
-
-#
-# RW = {"catalog": {
-#     "first_step": "catalog_menu", "steps": {
-#         "catalog_menu": {
-#             "text": "Выберите категорию",
-#             "err_val": "Я ничего не нашел, возможно добавим немного позже..",
-#             "keyboard": "catalog"
-#         },
-#         "step2": {
-#             "text": "",
-#             "err_val": "",
-#             "handler": "",
-#             "next_step": ""
-#             },
-#         }
-#     },
-# }
-#
-#
-# scnr = RW['catalog']
-# first_step = scnr['first_step']
-# step = scnr['steps'][first_step]
-#
-# keyboard = step['keyboard']
-# text_to_send = step['text']
-# print(text_to_send, keyboard)
