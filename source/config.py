@@ -2,8 +2,8 @@
 
 from source.sql_db import *     # select, conn
 
-TOKEN = 'c7465075b375a18026d0a4092b380a376f271ed121af807548ee0690a456f2d819a49a7e003c601723481'
-GROUP_ID = '188414199'
+TOKEN = 'TOKEN' # token del
+GROUP_ID = 'GROUP_ID'
 
 START_ANSWER = 'Привет, чем я могу вам помочь?'
 DEBUG_ANSWER = 'Я не смог разобать что вы сказали, вот что я умею:'
